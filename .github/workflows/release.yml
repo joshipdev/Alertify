@@ -11,13 +11,12 @@ on:
         required: false
         default: 'v1.0.0'
 
-permissions:
-  contents: write
-
 jobs:
   build-and-release:
     name: Build Release APK & Bundle
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
@@ -37,17 +36,6 @@ jobs:
         with:
           channel: 'stable'
           cache: true
-
-      - name: Ensure google-services.json exists
-        run: |
-          if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
-            echo "Injecting google-services.json from GitHub Secrets..."
-            echo "${{ secrets.GOOGLE_SERVICES_JSON }}" > android/app/google-services.json
-          fi
-          if [ ! -f android/app/google-services.json ]; then
-            echo "Error: android/app/google-services.json is missing!"
-            exit 1
-          fi
 
       - name: Install dependencies
         run: flutter pub get
@@ -74,7 +62,20 @@ jobs:
           cp build/app/outputs/flutter-apk/app-release.apk release-artifacts/Alertify-$TAG.apk
           cp build/app/outputs/bundle/release/app-release.aab release-artifacts/Alertify-$TAG.aab
 
+      - name: Upload APK artifact to GitHub Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: Alertify-APK
+          path: release-artifacts/*.apk
+
+      - name: Upload AAB artifact to GitHub Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: Alertify-AAB
+          path: release-artifacts/*.aab
+
       - name: Create GitHub Release and Upload Assets
+        continue-on-error: true
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.artifacts.outputs.release_tag }}
@@ -85,11 +86,6 @@ jobs:
             ### Included Artifacts:
             * **APK (`Alertify-${{ steps.artifacts.outputs.release_tag }}.apk`)**: Directly installable APK for Android phones/tablets.
             * **AAB (`Alertify-${{ steps.artifacts.outputs.release_tag }}.aab`)**: Android App Bundle for Google Play Store publishing.
-
-            ### Highlights:
-            * Connected to Firebase Realtime Database for real-time sensor updates.
-            * Live telemetry for motion (PIR), door contact (MC-38), and smoke/gas (MQ-2).
-            * Arm/Disarm control and live status monitoring.
           files: |
             release-artifacts/*.apk
             release-artifacts/*.aab
