@@ -1,0 +1,99 @@
+name: Build & Release Alertify App
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag (e.g. v1.0.0)'
+        required: false
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build Release APK & Bundle
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Ensure google-services.json exists
+        run: |
+          if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
+            echo "Injecting google-services.json from GitHub Secrets..."
+            echo "${{ secrets.GOOGLE_SERVICES_JSON }}" > android/app/google-services.json
+          fi
+          if [ ! -f android/app/google-services.json ]; then
+            echo "Error: android/app/google-services.json is missing!"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Android APK
+        run: flutter build apk --release
+
+      - name: Build Android App Bundle (AAB)
+        run: flutter build appbundle --release
+
+      - name: Prepare Release Artifacts
+        id: artifacts
+        run: |
+          TAG="${{ github.event.inputs.release_tag }}"
+          if [ -z "$TAG" ]; then
+            TAG="${{ github.ref_name }}"
+          fi
+          if [ -z "$TAG" ] || [ "$TAG" = "main" ]; then
+            TAG="v1.0.0"
+          fi
+          echo "release_tag=$TAG" >> $GITHUB_OUTPUT
+          
+          mkdir -p release-artifacts
+          cp build/app/outputs/flutter-apk/app-release.apk release-artifacts/Alertify-$TAG.apk
+          cp build/app/outputs/bundle/release/app-release.aab release-artifacts/Alertify-$TAG.aab
+
+      - name: Create GitHub Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.artifacts.outputs.release_tag }}
+          name: Alertify App Release ${{ steps.artifacts.outputs.release_tag }}
+          body: |
+            ## Alertify Home Alert System - Android Release ${{ steps.artifacts.outputs.release_tag }}
+
+            ### Included Artifacts:
+            * **APK (`Alertify-${{ steps.artifacts.outputs.release_tag }}.apk`)**: Directly installable APK for Android phones/tablets.
+            * **AAB (`Alertify-${{ steps.artifacts.outputs.release_tag }}.aab`)**: Android App Bundle for Google Play Store publishing.
+
+            ### Highlights:
+            * Connected to Firebase Realtime Database for real-time sensor updates.
+            * Live telemetry for motion (PIR), door contact (MC-38), and smoke/gas (MQ-2).
+            * Arm/Disarm control and live status monitoring.
+          files: |
+            release-artifacts/*.apk
+            release-artifacts/*.aab
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

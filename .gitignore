@@ -49,7 +49,7 @@ app.*.map.json
 
 # Alertify hardware & Firebase credentials (never commit sensitive keys)
 firmware/AlertifyESP32/config.h
-android/app/google-services.json
+# Note: android/app/google-services.json is needed by Gradle build in CI
 ios/Runner/GoogleService-Info.plist
 *.local
 *.env
