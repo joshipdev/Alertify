@@ -2,35 +2,27 @@
   "rules": {
     "devices": {
       "$deviceId": {
-        ".read": "auth != null && (auth.uid === root.child('deviceOwners').child($deviceId).val() || auth.uid === root.child('deviceAuthUids').child($deviceId).val())",
+        ".read": "auth != null",
         "status": {
-          ".write": "auth != null && auth.uid === root.child('deviceAuthUids').child($deviceId).val()"
+          ".write": "auth != null"
         },
         "sensors": {
-          ".write": "auth != null && auth.uid === root.child('deviceAuthUids').child($deviceId).val()"
+          ".write": "auth != null"
         },
         "commands": {
           "armed": {
-            ".write": "auth != null && auth.uid === root.child('deviceOwners').child($deviceId).val()"
+            ".write": "auth != null"
           }
         }
       }
     },
     "events": {
       "$deviceId": {
-        ".read": "auth != null && (auth.uid === root.child('deviceOwners').child($deviceId).val() || auth.uid === root.child('deviceAuthUids').child($deviceId).val())",
+        ".read": "auth != null",
         "$eventId": {
-          ".write": "auth != null && auth.uid === root.child('deviceAuthUids').child($deviceId).val()"
+          ".write": "auth != null"
         }
       }
-    },
-    "deviceOwners": {
-      ".read": false,
-      ".write": false
-    },
-    "deviceAuthUids": {
-      ".read": false,
-      ".write": false
     }
   }
 }

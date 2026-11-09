@@ -29,26 +29,37 @@ flutter run
 
 For Android, verify the generated `android/app/google-services.json` exists. For iOS, verify `ios/Runner/GoogleService-Info.plist` exists.
 
-## C. Firebase RTDB structure and ownership mapping
+## C. Multi-User Access & Database Rules
 
-Use device ID `esp32_001` unless you change it in both the firmware and `DeviceService`.
+The project is configured for **full multi-user household support**:
+- **Any user** who signs up or logs into the Alertify app with their email/password can view live sensors, receive alerts, and arm/disarm the system.
+- When any user toggles Arm/Disarm, all connected users' apps update in real time.
+- No manual UID copying or database editing is required!
 
-Create these values in the Realtime Database using the Firebase console or a trusted admin environment:
-
+Publish `firebase/database.rules.json` in **Firebase Console > Realtime Database > Rules**:
 ```json
 {
-  "deviceOwners": {
-    "esp32_001": "FIREBASE_UID_OF_THE_HUMAN_APP_USER"
-  },
-  "deviceAuthUids": {
-    "esp32_001": "FIREBASE_UID_OF_THE_DEDICATED_ESP32_ACCOUNT"
+  "rules": {
+    "devices": {
+      "$deviceId": {
+        ".read": "auth != null",
+        "status": { ".write": "auth != null" },
+        "sensors": { ".write": "auth != null" },
+        "commands": {
+          "armed": { ".write": "auth != null" }
+        }
+      }
+    },
+    "events": {
+      "$deviceId": {
+        ".read": "auth != null",
+        "$eventId": { ".write": "auth != null" }
+      }
+    }
   }
 }
 ```
-
-The app user UID is visible in Firebase Authentication. The device UID belongs to the separate Email/Password account used by the ESP32. Do not use the human user's password in firmware.
-
-Publish `firebase/database.rules.json` from Firebase Console > Realtime Database > Rules. These rules are a starting point and should be tested with the Firebase Rules simulator before deployment.
+These rules require valid authentication (`auth != null`) while allowing all verified family/team members and the ESP32 controller to communicate seamlessly.
 
 ## D. Configure ESP32 firmware
 
