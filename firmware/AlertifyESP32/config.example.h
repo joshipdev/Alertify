@@ -6,7 +6,7 @@
 #define WIFI_PASSWORD   "YOUR_WIFI_PASSWORD"
 
 #define FIREBASE_API_KEY       "YOUR_FIREBASE_WEB_API_KEY"
-#define FIREBASE_DATABASE_URL  "https://YOUR_PROJECT-default-rtdb.asia-southeast1.firebasedatabase.app"
+#define FIREBASE_DATABASE_URL  "https://alertify-6c595-default-rtdb.asia-southeast1.firebasedatabase.app"
 #define FIREBASE_DEVICE_EMAIL  "esp32-device@your-project.firebaseapp.com"
 #define FIREBASE_DEVICE_PASSWORD "CREATE_A_DEDICATED_DEVICE_ACCOUNT_PASSWORD"
 

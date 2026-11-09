@@ -41,61 +41,61 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDemo-WebKey-Alertify-Default',
-    appId: '1:1234567890:web:demo-alertify',
-    messagingSenderId: '1234567890',
-    projectId: 'alertify-demo-project',
-    authDomain: 'alertify-demo-project.firebaseapp.com',
-    databaseURL: 'https://alertify-demo-project-default-rtdb.firebaseio.com',
-    storageBucket: 'alertify-demo-project.appspot.com',
+    apiKey: 'PASTE_YOUR_WEB_API_KEY_HERE',
+    appId: '1:alertify:web:client',
+    messagingSenderId: 'alertify-6c595',
+    projectId: 'alertify-6c595',
+    authDomain: 'alertify-6c595.firebaseapp.com',
+    databaseURL: 'https://alertify-6c595-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'alertify-6c595.appspot.com',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDemo-AndroidKey-Alertify-Default',
-    appId: '1:1234567890:android:demo-alertify',
-    messagingSenderId: '1234567890',
-    projectId: 'alertify-demo-project',
-    databaseURL: 'https://alertify-demo-project-default-rtdb.firebaseio.com',
-    storageBucket: 'alertify-demo-project.appspot.com',
+    apiKey: 'PASTE_YOUR_WEB_API_KEY_HERE',
+    appId: '1:alertify:android:client',
+    messagingSenderId: 'alertify-6c595',
+    projectId: 'alertify-6c595',
+    databaseURL: 'https://alertify-6c595-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'alertify-6c595.appspot.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDemo-IosKey-Alertify-Default',
-    appId: '1:1234567890:ios:demo-alertify',
-    messagingSenderId: '1234567890',
-    projectId: 'alertify-demo-project',
-    databaseURL: 'https://alertify-demo-project-default-rtdb.firebaseio.com',
-    storageBucket: 'alertify-demo-project.appspot.com',
+    apiKey: 'PASTE_YOUR_WEB_API_KEY_HERE',
+    appId: '1:alertify:ios:client',
+    messagingSenderId: 'alertify-6c595',
+    projectId: 'alertify-6c595',
+    databaseURL: 'https://alertify-6c595-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'alertify-6c595.appspot.com',
     iosBundleId: 'com.example.alertify',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyDemo-IosKey-Alertify-Default',
-    appId: '1:1234567890:ios:demo-alertify',
-    messagingSenderId: '1234567890',
-    projectId: 'alertify-demo-project',
-    databaseURL: 'https://alertify-demo-project-default-rtdb.firebaseio.com',
-    storageBucket: 'alertify-demo-project.appspot.com',
+    apiKey: 'PASTE_YOUR_WEB_API_KEY_HERE',
+    appId: '1:alertify:ios:client',
+    messagingSenderId: 'alertify-6c595',
+    projectId: 'alertify-6c595',
+    databaseURL: 'https://alertify-6c595-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'alertify-6c595.appspot.com',
     iosBundleId: 'com.example.alertify',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyDemo-WebKey-Alertify-Default',
-    appId: '1:1234567890:web:demo-alertify',
-    messagingSenderId: '1234567890',
-    projectId: 'alertify-demo-project',
-    authDomain: 'alertify-demo-project.firebaseapp.com',
-    databaseURL: 'https://alertify-demo-project-default-rtdb.firebaseio.com',
-    storageBucket: 'alertify-demo-project.appspot.com',
+    apiKey: 'PASTE_YOUR_WEB_API_KEY_HERE',
+    appId: '1:alertify:web:client',
+    messagingSenderId: 'alertify-6c595',
+    projectId: 'alertify-6c595',
+    authDomain: 'alertify-6c595.firebaseapp.com',
+    databaseURL: 'https://alertify-6c595-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'alertify-6c595.appspot.com',
   );
 
   static const FirebaseOptions linux = FirebaseOptions(
-    apiKey: 'AIzaSyDemo-WebKey-Alertify-Default',
-    appId: '1:1234567890:web:demo-alertify',
-    messagingSenderId: '1234567890',
-    projectId: 'alertify-demo-project',
-    authDomain: 'alertify-demo-project.firebaseapp.com',
-    databaseURL: 'https://alertify-demo-project-default-rtdb.firebaseio.com',
-    storageBucket: 'alertify-demo-project.appspot.com',
+    apiKey: 'PASTE_YOUR_WEB_API_KEY_HERE',
+    appId: '1:alertify:web:client',
+    messagingSenderId: 'alertify-6c595',
+    projectId: 'alertify-6c595',
+    authDomain: 'alertify-6c595.firebaseapp.com',
+    databaseURL: 'https://alertify-6c595-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'alertify-6c595.appspot.com',
   );
 }

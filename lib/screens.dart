@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'camera_view.dart';
 import 'device_service.dart';
 import 'theme.dart';
@@ -433,7 +434,7 @@ class HomeTab extends StatelessWidget {
               Expanded(child: _quick(Icons.settings, 'Settings', () => onGo(2))),
             ]),
             const SizedBox(height: 14),
-            _deviceRow(),
+            _deviceRow(context),
           ],
         ),
       ),
@@ -489,27 +490,39 @@ class HomeTab extends StatelessWidget {
     );
   }
 
-  Widget _deviceRow() {
+  Widget _deviceRow(BuildContext context) {
     return _card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(children: [
-          Icon(device.cameraOnline ? Icons.developer_board : Icons.wifi_off,
-              color: AppColors.navy),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('ESP32 Security Controller',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
-              Text(device.cameraOnline ? 'Connected to Firebase' : 'Offline / no heartbeat',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const HardwareSetupScreen()),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(children: [
+            Icon(device.cameraOnline ? Icons.developer_board : Icons.wifi_off,
+                color: AppColors.navy),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('ESP32 Security Controller',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                Text(
+                  device.cameraOnline
+                      ? 'Connected to Firebase (Live)'
+                      : 'Tap to configure hardware connection',
                   style: TextStyle(
-                      color: device.cameraOnline ? AppColors.green : AppColors.grey)),
-            ]),
-          ),
-          const Icon(Icons.sensors, color: AppColors.blue),
-          const SizedBox(width: 5),
-          Text(device.mq2Ready ? 'MQ-2 Ready' : 'MQ-2 Warm-up'),
-        ]),
+                    color: device.cameraOnline ? AppColors.green : AppColors.blue,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ]),
+            ),
+            const Icon(Icons.tune, color: AppColors.grey),
+          ]),
+        ),
       ),
     );
   }
@@ -698,6 +711,14 @@ class SettingsTab extends StatelessWidget {
                 const Divider(height: 1),
                 _item(Icons.notifications, 'Notification Settings',
                     onTap: () => _snack(context, 'Push notifications are enabled (demo)')),
+                const Divider(height: 1),
+                _item(Icons.developer_board, 'Hardware Connection Setup',
+                    value: device.cameraOnline ? 'Connected' : 'Configure',
+                    valueColor: device.cameraOnline ? AppColors.green : AppColors.blue,
+                    onTap: () {
+                      Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => const HardwareSetupScreen()));
+                    }),
                 const Divider(height: 1),
                 _item(Icons.developer_mode, 'Hardware Simulator',
                     onTap: () {
@@ -965,6 +986,361 @@ class _SimulatorSheet extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+
+// ───────────────────── Hardware Connection Setup Screen ─────────────────────
+
+class HardwareSetupScreen extends StatefulWidget {
+  const HardwareSetupScreen({super.key});
+
+  @override
+  State<HardwareSetupScreen> createState() => _HardwareSetupScreenState();
+}
+
+class _HardwareSetupScreenState extends State<HardwareSetupScreen> {
+  final _ssid = TextEditingController(text: 'Home-WiFi');
+  final _pass = TextEditingController(text: 'WiFiPassword123');
+  final _deviceId = TextEditingController(text: 'esp32_001');
+  final _rtdbUrl = TextEditingController(
+      text: 'https://alertify-6c595-default-rtdb.asia-southeast1.firebasedatabase.app');
+  final _apiKey = TextEditingController(text: 'AIzaSyDemo-WebKey-Alertify-Default');
+  final _deviceEmail = TextEditingController(
+      text: 'esp32-device@alertify-6c595.firebaseapp.com');
+  final _devicePass = TextEditingController(text: 'DevicePassword123');
+
+  bool _hidePass = true;
+
+  @override
+  void dispose() {
+    _ssid.dispose();
+    _pass.dispose();
+    _deviceId.dispose();
+    _rtdbUrl.dispose();
+    _apiKey.dispose();
+    _deviceEmail.dispose();
+    _devicePass.dispose();
+    super.dispose();
+  }
+
+  String _generateConfigCode() {
+    return '''#pragma once
+
+// Generated by Alertify Mobile App
+#define WIFI_SSID       "${_ssid.text}"
+#define WIFI_PASSWORD   "${_pass.text}"
+
+#define FIREBASE_API_KEY       "${_apiKey.text}"
+#define FIREBASE_DATABASE_URL  "${_rtdbUrl.text}"
+#define FIREBASE_DEVICE_EMAIL  "${_deviceEmail.text}"
+#define FIREBASE_DEVICE_PASSWORD "${_devicePass.text}"
+
+#define DEVICE_ID "${_deviceId.text}"
+#define MQ2_ALARM_THRESHOLD 1800
+''';
+  }
+
+  void _copyConfig() {
+    Clipboard.setData(ClipboardData(text: _generateConfigCode()));
+    _snack(context, 'ESP32 config.h copied to clipboard!');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      appBar: AppBar(
+        backgroundColor: AppColors.navy,
+        foregroundColor: Colors.white,
+        title: const Text('Hardware Connection Setup'),
+        elevation: 0,
+      ),
+      body: ListenableBuilder(
+        listenable: device,
+        builder: (context, _) => ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _buildLiveStatusCard(),
+            const SizedBox(height: 16),
+            _buildProvisioningCard(),
+            const SizedBox(height: 16),
+            _buildWiringGuideCard(),
+            const SizedBox(height: 16),
+            _buildLiveDiagnosticCard(),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLiveStatusCard() {
+    final online = device.cameraOnline;
+    final color = online ? AppColors.green : AppColors.orange;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 1.5),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: color.withValues(alpha: 0.12),
+            child: Icon(online ? Icons.wifi : Icons.wifi_off, color: color),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  online ? 'ESP32 Controller Connected' : 'Waiting for Hardware...',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  online
+                      ? 'Heartbeat active · Device ID: ${device.deviceId}'
+                      : 'Flash firmware with your Wi-Fi & Firebase credentials below.',
+                  style: const TextStyle(fontSize: 13, color: AppColors.grey),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProvisioningCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.tune, color: AppColors.navy),
+              SizedBox(width: 8),
+              Text('Wi-Fi & Firebase Provisioning',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Configure the credentials to flash to your ESP32 controller.',
+            style: TextStyle(color: AppColors.grey, fontSize: 13),
+          ),
+          const SizedBox(height: 16),
+          _input('Device ID', _deviceId, Icons.tag),
+          const SizedBox(height: 12),
+          _input('Wi-Fi SSID', _ssid, Icons.wifi),
+          const SizedBox(height: 12),
+          _input('Wi-Fi Password', _pass, Icons.lock_outline, obscure: _hidePass,
+              suffix: IconButton(
+                icon: Icon(_hidePass ? Icons.visibility_off : Icons.visibility),
+                onPressed: () => setState(() => _hidePass = !_hidePass),
+              )),
+          const SizedBox(height: 12),
+          _input('Firebase RTDB URL', _rtdbUrl, Icons.cloud_outlined),
+          const SizedBox(height: 12),
+          _input('Firebase Web API Key', _apiKey, Icons.key),
+          const SizedBox(height: 12),
+          _input('ESP32 Account Email', _deviceEmail, Icons.email_outlined),
+          const SizedBox(height: 12),
+          _input('ESP32 Account Password', _devicePass, Icons.lock, obscure: true),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.navy,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              onPressed: _copyConfig,
+              icon: const Icon(Icons.copy),
+              label: const Text('Copy ESP32 config.h Code',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWiringGuideCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.cable, color: AppColors.navy),
+              SizedBox(width: 8),
+              Text('ESP32 Pinout & Wiring Guide',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _pinRow('HC-SR501 PIR Motion', 'OUT → GPIO 27', Colors.blue),
+          const Divider(height: 14),
+          _pinRow('MC-38 Door Contact', 'Signal → GPIO 26 + GND', Colors.teal),
+          const Divider(height: 14),
+          _pinRow('MQ-2 Smoke/Gas', 'AO → GPIO 34 (via 3.3V divider)', Colors.orange),
+          const Divider(height: 14),
+          _pinRow('16x2 I2C LCD Display', 'SDA → GPIO 21, SCL → GPIO 22', Colors.purple),
+          const Divider(height: 14),
+          _pinRow('Active Buzzer', 'Positive (+) → GPIO 25', Colors.red),
+        ],
+      ),
+    );
+  }
+
+  Widget _pinRow(String component, String pin, Color tagColor) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(component,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: tagColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: tagColor.withValues(alpha: 0.3)),
+          ),
+          child: Text(pin,
+              style: TextStyle(
+                  color: tagColor, fontWeight: FontWeight.w700, fontSize: 12)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLiveDiagnosticCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.sensors, color: AppColors.navy),
+              SizedBox(width: 8),
+              Text('Live Hardware Telemetry',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _diagTile(
+                  'Motion Sensor',
+                  device.motionActive ? 'DETECTED' : 'CLEAR',
+                  device.motionActive ? AppColors.red : AppColors.green,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _diagTile(
+                  'Door Contact',
+                  device.doorOpen ? 'OPEN' : 'CLOSED',
+                  device.doorOpen ? AppColors.red : AppColors.green,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _diagTile(
+                  'Gas Reading (MQ-2)',
+                  '${device.gasRaw} counts',
+                  device.smokeDetected ? AppColors.red : AppColors.green,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _diagTile(
+                  'Arm State',
+                  device.armed ? 'ARMED' : 'DISARMED',
+                  device.armed ? AppColors.blue : AppColors.orange,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => device.setArmed(!device.armed),
+              icon: Icon(device.armed ? Icons.lock_open : Icons.lock),
+              label: Text(device.armed ? 'Test Disarm Command' : 'Test Arm Command'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _diagTile(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 11, color: AppColors.grey)),
+          const SizedBox(height: 2),
+          Text(value,
+              style: TextStyle(
+                  fontWeight: FontWeight.w700, color: color, fontSize: 14)),
+        ],
+      ),
+    );
+  }
+
+  Widget _input(String label, TextEditingController controller, IconData icon,
+      {bool obscure = false, Widget? suffix}) {
+    return TextField(
+      controller: controller,
+      obscureText: obscure,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, size: 20, color: AppColors.navy),
+        suffixIcon: suffix,
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
