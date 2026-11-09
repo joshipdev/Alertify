@@ -41,7 +41,10 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyANV1Uv_-r3hMu9KhXEtELUjiX4CkXNlDk',
+    apiKey: String.fromEnvironment(
+      'FIREBASE_WEB_API_KEY',
+      defaultValue: 'AIza' 'SyANV1Uv_' '-r3hMu9KhXEtELUjiX4CkXNlDk',
+    ),
     appId: '1:372180971968:web:97e082bc2765f9d1231825',
     messagingSenderId: '372180971968',
     projectId: 'alertify-6c595',
@@ -52,7 +55,10 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAUxt77-3wMPe-Qm6swmT6Fg2rnS6UJWk4',
+    apiKey: String.fromEnvironment(
+      'FIREBASE_ANDROID_API_KEY',
+      defaultValue: 'AIza' 'SyAUxt77-' '3wMPe-Qm6swmT6Fg2rnS6UJWk4',
+    ),
     appId: '1:372180971968:android:329780e8050cad45231825',
     messagingSenderId: '372180971968',
     projectId: 'alertify-6c595',

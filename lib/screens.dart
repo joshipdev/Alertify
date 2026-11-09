@@ -1043,7 +1043,7 @@ class _HardwareSetupScreenState extends State<HardwareSetupScreen> {
   final _deviceId = TextEditingController(text: 'esp32_001');
   final _rtdbUrl = TextEditingController(
       text: 'https://alertify-6c595-default-rtdb.asia-southeast1.firebasedatabase.app');
-  final _apiKey = TextEditingController(text: 'AIzaSyDemo-WebKey-Alertify-Default');
+  final _apiKey = TextEditingController(text: 'YOUR_FIREBASE_WEB_API_KEY');
   final _deviceEmail = TextEditingController(
       text: 'esp32-device@alertify-6c595.firebaseapp.com');
   final _devicePass = TextEditingController(text: 'DevicePassword123');
