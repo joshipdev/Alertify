@@ -385,6 +385,13 @@ class HomeTab extends StatelessWidget {
       leading: const Icon(Icons.menu, color: Colors.white, size: 28),
       actions: [
         IconButton(
+          tooltip: 'My Devices & Pairing',
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const DeviceManagementScreen()),
+          ),
+          icon: const Icon(Icons.devices, color: Colors.white, size: 24),
+        ),
+        IconButton(
           onPressed: () => onGo(1),
           icon: const Icon(Icons.notifications_none, color: Colors.white, size: 28),
         ),
@@ -394,6 +401,27 @@ class HomeTab extends StatelessWidget {
         builder: (context, _) => ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
           children: [
+            InkWell(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const DeviceManagementScreen()),
+              ),
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                child: Row(
+                  children: [
+                    const Icon(Icons.location_on, size: 16, color: AppColors.blue),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${device.deviceName} (${device.deviceId})',
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                    ),
+                    const Icon(Icons.arrow_drop_down, size: 18, color: AppColors.grey),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
             _statusCard(),
             const SizedBox(height: 14),
             _card(
@@ -711,6 +739,14 @@ class SettingsTab extends StatelessWidget {
                 const Divider(height: 1),
                 _item(Icons.notifications, 'Notification Settings',
                     onTap: () => _snack(context, 'Push notifications are enabled (demo)')),
+                const Divider(height: 1),
+                _item(Icons.devices, 'My Devices & Pairing',
+                    value: '${device.userDevices.length} Paired',
+                    valueColor: AppColors.blue,
+                    onTap: () {
+                      Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => const DeviceManagementScreen()));
+                    }),
                 const Divider(height: 1),
                 _item(Icons.developer_board, 'Hardware Connection Setup',
                     value: device.cameraOnline ? 'Connected' : 'Configure',
@@ -1341,6 +1377,308 @@ class _HardwareSetupScreenState extends State<HardwareSetupScreen> {
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+}
+
+
+// ───────────────────── Commercial Device Management & Pairing ─────────────────────
+
+class DeviceManagementScreen extends StatefulWidget {
+  const DeviceManagementScreen({super.key});
+
+  @override
+  State<DeviceManagementScreen> createState() => _DeviceManagementScreenState();
+}
+
+class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
+  final _idController = TextEditingController();
+  final _nameController = TextEditingController();
+  bool _busy = false;
+
+  @override
+  void dispose() {
+    _idController.dispose();
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _claim() async {
+    final id = _idController.text.trim();
+    final name = _nameController.text.trim();
+    if (id.isEmpty) {
+      _snack(context, 'Please enter a valid Device Serial / ID (e.g. esp32_002)');
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      await device.claimDevice(id, name: name.isNotEmpty ? name : null);
+      if (!mounted) return;
+      _idController.clear();
+      _nameController.clear();
+      _snack(context, 'Device "$id" claimed and connected successfully!');
+    } catch (e) {
+      if (!mounted) return;
+      _snack(context, 'Unable to pair device: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _confirmUnpair(String id, String name) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text('Unpair $name?'),
+        content: Text('Are you sure you want to remove "$id" from your account?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.red),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Unpair'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await device.unpairDevice(id);
+      if (!mounted) return;
+      _snack(context, 'Device "$id" removed from your account.');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      appBar: AppBar(
+        backgroundColor: AppColors.navy,
+        foregroundColor: Colors.white,
+        title: const Text('My Alertify Devices'),
+        elevation: 0,
+      ),
+      body: ListenableBuilder(
+        listenable: device,
+        builder: (context, _) => ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _buildMyDevicesCard(),
+            const SizedBox(height: 16),
+            _buildPairingCard(),
+            const SizedBox(height: 16),
+            _buildMultiTenantInfoCard(),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMyDevicesCard() {
+    final entries = device.userDevices.entries.toList();
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.devices, color: AppColors.navy),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text('Paired Hardware Devices',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text('${entries.length} Active',
+                    style: const TextStyle(
+                        color: AppColors.blue, fontWeight: FontWeight.w700, fontSize: 12)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Tap any device below to switch to its live feed and alarms.',
+            style: TextStyle(color: AppColors.grey, fontSize: 13),
+          ),
+          const SizedBox(height: 14),
+          if (entries.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: Text('No devices claimed yet. Pair your first device below!'),
+              ),
+            )
+          else
+            ...entries.map((e) {
+              final isCurrent = e.key == device.deviceId;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  color: isCurrent
+                      ? AppColors.blue.withValues(alpha: 0.06)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isCurrent
+                        ? AppColors.blue.withValues(alpha: 0.4)
+                        : AppColors.border,
+                  ),
+                ),
+                child: ListTile(
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  leading: CircleAvatar(
+                    backgroundColor: isCurrent ? AppColors.blue : AppColors.border,
+                    foregroundColor: isCurrent ? Colors.white : AppColors.navy,
+                    child: const Icon(Icons.developer_board, size: 20),
+                  ),
+                  title: Text(e.value,
+                      style: TextStyle(
+                          fontWeight:
+                              isCurrent ? FontWeight.w700 : FontWeight.w500)),
+                  subtitle: Text('ID: ${e.key} ${isCurrent ? "· Currently Active" : ""}',
+                      style: TextStyle(
+                          color: isCurrent ? AppColors.blue : AppColors.grey)),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isCurrent)
+                        const Icon(Icons.check_circle, color: AppColors.blue)
+                      else
+                        TextButton(
+                          onPressed: () => device.switchDevice(e.key, name: e.value),
+                          child: const Text('Switch'),
+                        ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline,
+                            color: AppColors.red, size: 20),
+                        tooltip: 'Unpair',
+                        onPressed: () => _confirmUnpair(e.key, e.value),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPairingCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.add_link, color: AppColors.navy),
+              SizedBox(width: 8),
+              Text('Pair / Claim New Hardware Box',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Enter the Serial Number or Device ID printed on the Alertify hardware label.',
+            style: TextStyle(color: AppColors.grey, fontSize: 13),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _idController,
+            decoration: InputDecoration(
+              labelText: 'Device Serial Number / ID',
+              hintText: 'e.g. esp32_002',
+              prefixIcon: const Icon(Icons.qr_code, color: AppColors.navy),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              isDense: true,
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _nameController,
+            decoration: InputDecoration(
+              labelText: 'Device Friendly Name / Location',
+              hintText: 'e.g. Living Room, Warehouse, Back Door',
+              prefixIcon: const Icon(Icons.home_outlined, color: AppColors.navy),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              isDense: true,
+            ),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.navy,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              onPressed: _busy ? null : _claim,
+              icon: _busy
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.check_circle_outline),
+              label: Text(_busy ? 'Claiming...' : 'Claim & Connect Device',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMultiTenantInfoCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.blue.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.blue.withValues(alpha: 0.2)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.shield, color: AppColors.blue),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Commercial Isolation & Privacy',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                SizedBox(height: 4),
+                Text(
+                  'Once you claim a hardware device, it is encrypted and locked to your personal account. No other customer can monitor, access, or disarm your system.',
+                  style: TextStyle(fontSize: 12, color: AppColors.grey, height: 1.3),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -2,7 +2,10 @@
   "rules": {
     "devices": {
       "$deviceId": {
-        ".read": "auth != null",
+        ".read": "auth != null && (!data.child('owner').exists() || data.child('owner').val() === auth.uid)",
+        "owner": {
+          ".write": "auth != null && (!data.exists() || data.val() === auth.uid)"
+        },
         "status": {
           ".write": "auth != null"
         },
@@ -11,17 +14,23 @@
         },
         "commands": {
           "armed": {
-            ".write": "auth != null"
+            ".write": "auth != null && (!data.parent().child('owner').exists() || data.parent().child('owner').val() === auth.uid)"
           }
         }
       }
     },
     "events": {
       "$deviceId": {
-        ".read": "auth != null",
+        ".read": "auth != null && (!root.child('devices').child($deviceId).child('owner').exists() || root.child('devices').child($deviceId).child('owner').val() === auth.uid)",
         "$eventId": {
           ".write": "auth != null"
         }
+      }
+    },
+    "users": {
+      "$userId": {
+        ".read": "auth != null && auth.uid === $userId",
+        ".write": "auth != null && auth.uid === $userId"
       }
     }
   }

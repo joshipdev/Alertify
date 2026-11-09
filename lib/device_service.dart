@@ -22,13 +22,16 @@ class DeviceService extends ChangeNotifier {
   DeviceService({
     FirebaseDatabase? database,
     FirebaseAuth? auth,
-    this.deviceId = 'esp32_001',
+    String initialDeviceId = 'esp32_001',
   })  : _db = database ?? FirebaseDatabase.instance,
-        _auth = auth ?? FirebaseAuth.instance;
+        _auth = auth ?? FirebaseAuth.instance,
+        deviceId = initialDeviceId;
 
   final FirebaseDatabase _db;
   final FirebaseAuth _auth;
-  final String deviceId;
+  String deviceId;
+  String deviceName = 'Main Controller';
+  final Map<String, String> userDevices = {'esp32_001': 'Main Controller'};
 
   String userEmail = '';
   bool armed = true;
@@ -69,6 +72,104 @@ class DeviceService extends ChangeNotifier {
     // from ESP32's lastSeen heartbeat and should be marked stale server-side.
     connected = true;
     notifyListeners();
+    loadUserDevices();
+  }
+
+  Future<void> switchDevice(String newDeviceId, {String? name}) async {
+    if (newDeviceId == deviceId && _sensorsSub != null) return;
+    await disposeStreams();
+    deviceId = newDeviceId;
+    if (name != null) {
+      deviceName = name;
+    } else if (userDevices.containsKey(newDeviceId)) {
+      deviceName = userDevices[newDeviceId]!;
+    }
+    // Reset telemetry for new device
+    motionActive = false;
+    doorOpen = false;
+    smokeDetected = false;
+    alarmActive = false;
+    cameraOnline = false;
+    gasRaw = 0;
+    events.clear();
+    notifyListeners();
+    await connect();
+  }
+
+  Future<void> loadUserDevices() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      final snap = await _db.ref('users/$uid/devices').get();
+      if (snap.exists && snap.value is Map) {
+        final map = Map<String, dynamic>.from(snap.value as Map);
+        userDevices.clear();
+        map.forEach((k, v) {
+          userDevices[k] = (v is String && v.isNotEmpty) ? v : 'Device $k';
+        });
+        if (!userDevices.containsKey(deviceId) && userDevices.isNotEmpty) {
+          final first = userDevices.keys.first;
+          await switchDevice(first, name: userDevices[first]);
+        } else {
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      debugPrint('Notice loading user devices: $e');
+    }
+  }
+
+  Future<bool> claimDevice(String targetDeviceId, {String? name}) async {
+    final cleanId = targetDeviceId.trim();
+    if (cleanId.isEmpty) return false;
+    final uid = _auth.currentUser?.uid;
+    final label = (name != null && name.trim().isNotEmpty)
+        ? name.trim()
+        : 'Device $cleanId';
+
+    if (uid != null) {
+      try {
+        final ownerSnap = await _db.ref('devices/$cleanId/owner').get();
+        if (ownerSnap.exists && ownerSnap.value != null && ownerSnap.value != uid) {
+          throw Exception('This device is already claimed by another user account.');
+        }
+        await _db.ref('devices/$cleanId/owner').set(uid);
+        await _db.ref('users/$uid/devices/$cleanId').set(label);
+      } catch (e) {
+        debugPrint('Claim device RTDB sync notice: $e');
+        if (e.toString().contains('already claimed')) rethrow;
+      }
+    }
+
+    userDevices[cleanId] = label;
+    await switchDevice(cleanId, name: label);
+    return true;
+  }
+
+  Future<void> unpairDevice(String targetDeviceId) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid != null) {
+      try {
+        await _db.ref('users/$uid/devices/$targetDeviceId').remove();
+        final ownerSnap = await _db.ref('devices/$targetDeviceId/owner').get();
+        if (ownerSnap.value == uid) {
+          await _db.ref('devices/$targetDeviceId/owner').remove();
+        }
+      } catch (e) {
+        debugPrint('Unpair device notice: $e');
+      }
+    }
+    userDevices.remove(targetDeviceId);
+    if (deviceId == targetDeviceId) {
+      if (userDevices.isNotEmpty) {
+        final next = userDevices.keys.first;
+        await switchDevice(next, name: userDevices[next]);
+      } else {
+        await switchDevice('esp32_001', name: 'Main Controller');
+      }
+    } else {
+      notifyListeners();
+    }
   }
 
   void _onSensors(DatabaseEvent event) {
