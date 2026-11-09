@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "author": "Alertify",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-pir-motion-sensor", "id": "pir", "top": -120, "left": -120, "attrs": {} },
+    { "type": "wokwi-slide-switch", "id": "door_switch", "top": -120, "left": 120, "attrs": {} },
+    { "type": "wokwi-potentiometer", "id": "gas_pot", "top": 120, "left": -140, "attrs": {} },
+    { "type": "wokwi-lcd1602", "id": "lcd", "top": -240, "left": 0, "attrs": { "pins": "i2c" } },
+    { "type": "wokwi-buzzer", "id": "buzzer", "top": 120, "left": 140, "attrs": {} }
+  ],
+  "connections": [
+    [ "esp:GND.1", "pir:GND", "black", [ "v0" ] ],
+    [ "esp:5V", "pir:VCC", "red", [ "v0" ] ],
+    [ "esp:27", "pir:OUT", "green", [ "v0" ] ],
+
+    [ "esp:GND.2", "door_switch:1", "black", [ "v0" ] ],
+    [ "esp:26", "door_switch:2", "blue", [ "v0" ] ],
+
+    [ "esp:GND.1", "gas_pot:GND", "black", [ "v0" ] ],
+    [ "esp:3V3", "gas_pot:VCC", "red", [ "v0" ] ],
+    [ "esp:34", "gas_pot:SIG", "orange", [ "v0" ] ],
+
+    [ "esp:GND.1", "lcd:GND", "black", [ "v0" ] ],
+    [ "esp:5V", "lcd:VCC", "red", [ "v0" ] ],
+    [ "esp:21", "lcd:SDA", "yellow", [ "v0" ] ],
+    [ "esp:22", "lcd:SCL", "purple", [ "v0" ] ],
+
+    [ "esp:GND.2", "buzzer:1", "black", [ "v0" ] ],
+    [ "esp:25", "buzzer:2", "red", [ "v0" ] ]
+  ],
+  "dependencies": {}
+}

@@ -1,0 +1,23 @@
+name: alertify
+description: Alertify - Home Alert System With Mobile Access (demo with simulated CCTV/IoT hardware)
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  firebase_core: ^3.15.2
+  firebase_auth: ^5.7.0
+  firebase_database: ^11.3.10
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
