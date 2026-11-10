@@ -1089,7 +1089,7 @@ class SettingsTab extends StatelessWidget {
                   showAboutDialog(
                     context: context,
                     applicationName: 'Alertify',
-                    applicationVersion: '1.0.0 (demo)',
+                    applicationVersion: '1.0.2',
                     applicationIcon:
                         const AlertifyLogo(size: 48),
                     children: const [
