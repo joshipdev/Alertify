@@ -1,0 +1,39 @@
+name: Feature request
+description: Propose an improvement to Alertify.
+title: "[Feature]: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search existing issues first. Explain the user need and consider which parts of the stack are affected.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or need
+      description: What user problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the behavior you would like to see.
+    validations:
+      required: true
+  - type: checkboxes
+    id: areas
+    attributes:
+      label: Potentially affected areas
+      options:
+        - label: Flutter app
+        - label: Firebase / data model
+        - label: ESP32 firmware or hardware
+        - label: Android build or release
+        - label: Documentation or tooling
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or additional context
+    validations:
+      required: false

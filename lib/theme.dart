@@ -20,19 +20,12 @@ ThemeData buildTheme() {
   );
 }
 
-/// House + shield + lock logo drawn with built-in icons (no image assets needed).
 class AlertifyLogo extends StatelessWidget {
   final double size;
-  final Color houseColor;
-  final Color shieldColor;
-  final bool showWifi;
 
   const AlertifyLogo({
     super.key,
     this.size = 120,
-    this.houseColor = Colors.white,
-    this.shieldColor = AppColors.blue,
-    this.showWifi = false,
   });
 
   @override
@@ -40,28 +33,10 @@ class AlertifyLogo extends StatelessWidget {
     return SizedBox(
       width: size,
       height: size,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Icon(Icons.home_outlined, size: size, color: houseColor),
-          Padding(
-            padding: EdgeInsets.only(top: size * 0.18),
-            child: Icon(Icons.shield, size: size * 0.5, color: shieldColor),
-          ),
-          Padding(
-            padding: EdgeInsets.only(top: size * 0.2),
-            child: Icon(Icons.lock, size: size * 0.2, color: Colors.white),
-          ),
-          if (showWifi)
-            Positioned(
-              top: 0,
-              right: -size * 0.05,
-              child: Transform.rotate(
-                angle: 0.6,
-                child: Icon(Icons.wifi, size: size * 0.3, color: AppColors.lightBlue),
-              ),
-            ),
-        ],
+      child: Image.asset(
+        'assets/branding/alertify_mark.png',
+        fit: BoxFit.contain,
+        excludeFromSemantics: true,
       ),
     );
   }

@@ -1,5 +1,5 @@
 name: alertify
-description: Alertify - Home Alert System With Mobile Access (demo with simulated CCTV/IoT hardware)
+description: Alertify - A full-stack mobile and IoT home-alert system
 publish_to: "none"
 version: 1.0.0+1
 
@@ -22,3 +22,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/branding/alertify_mark.png

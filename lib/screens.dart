@@ -85,7 +85,7 @@ class _SplashScreenState extends State<SplashScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                AlertifyLogo(size: 150, showWifi: true),
+                AlertifyLogo(size: 150),
                 SizedBox(height: 18),
                 Text('Alertify',
                     style: TextStyle(
@@ -448,8 +448,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 40),
-                  const AlertifyLogo(
-                      size: 120, houseColor: AppColors.navy, shieldColor: AppColors.blue),
+                  const AlertifyLogo(size: 120),
                   const Text('Alertify',
                       style: TextStyle(
                           color: AppColors.navy,
@@ -1092,7 +1091,7 @@ class SettingsTab extends StatelessWidget {
                     applicationName: 'Alertify',
                     applicationVersion: '1.0.0 (demo)',
                     applicationIcon:
-                        const AlertifyLogo(size: 48, houseColor: AppColors.navy),
+                        const AlertifyLogo(size: 48),
                     children: const [
                       Text('Home Alert System With Mobile Access.\n'
                           'This demo uses a simulated CCTV / IoT device.'),

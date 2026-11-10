@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/joshipdev/Alertify/security/advisories/new
+    about: Report security issues privately. Do not create a public issue.
+  - name: Contribution and setup guidance
+    url: https://github.com/joshipdev/Alertify/blob/main/CONTRIBUTING.md
+    about: Read the development setup and contribution guidelines.
