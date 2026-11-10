@@ -2,9 +2,12 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'camera_view.dart';
 import 'device_service.dart';
 import 'theme.dart';
+
+const _hasSeenGettingStartedKey = 'has_seen_getting_started';
 
 String fmtTime(DateTime d) {
   final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
@@ -32,11 +35,24 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer(const Duration(milliseconds: 2200), () {
-      if (!mounted) return;
-      Navigator.of(context)
-          .pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
-    });
+    _timer = Timer(const Duration(milliseconds: 2200), _continueToApp);
+  }
+
+  Future<void> _continueToApp() async {
+    var hasSeenGuide = false;
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      hasSeenGuide = preferences.getBool(_hasSeenGettingStartedKey) ?? false;
+    } catch (error) {
+      debugPrint('Unable to read getting-started status: $error');
+    }
+
+    if (!mounted) return;
+    final nextScreen = hasSeenGuide
+        ? const LoginScreen()
+        : const GettingStartedScreen(isFirstRun: true);
+    Navigator.of(context)
+        .pushReplacement(MaterialPageRoute(builder: (_) => nextScreen));
   }
 
   @override
@@ -84,6 +100,269 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ───────────────────────── Getting started ─────────────────────────
+
+class GettingStartedScreen extends StatefulWidget {
+  final bool isFirstRun;
+
+  const GettingStartedScreen({super.key, this.isFirstRun = false});
+
+  @override
+  State<GettingStartedScreen> createState() => _GettingStartedScreenState();
+}
+
+class _GettingStartedScreenState extends State<GettingStartedScreen> {
+  final _pageController = PageController();
+  int _currentPage = 0;
+  bool _saving = false;
+
+  Future<void> _finishGuide() async {
+    if (_saving) return;
+    setState(() => _saving = true);
+
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      final saved = await preferences.setBool(_hasSeenGettingStartedKey, true);
+      if (!saved) throw StateError('The guide status was not saved.');
+    } catch (error) {
+      debugPrint('Unable to save getting-started status: $error');
+      if (mounted) {
+        _snack(context, 'Could not save your guide progress. Please try again.');
+        setState(() => _saving = false);
+      }
+      return;
+    }
+
+    if (!mounted) return;
+    if (widget.isFirstRun) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+    } else {
+      Navigator.of(context).pop();
+    }
+  }
+
+  void _nextPage() {
+    if (_currentPage == _gettingStartedSteps.length - 1) {
+      _finishGuide();
+      return;
+    }
+    _pageController.nextPage(
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOut,
+    );
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isLastPage = _currentPage == _gettingStartedSteps.length - 1;
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'GETTING STARTED',
+                      style: TextStyle(
+                        color: AppColors.navy,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _saving ? null : _finishGuide,
+                    child: Text(widget.isFirstRun ? 'Skip' : 'Close'),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  for (var index = 0;
+                      index < _gettingStartedSteps.length;
+                      index++) ...[
+                    Expanded(
+                      child: Semantics(
+                        label: 'Step ${index + 1} of ${_gettingStartedSteps.length}',
+                        child: Container(
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: index <= _currentPage
+                                ? AppColors.blue
+                                : AppColors.border,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (index < _gettingStartedSteps.length - 1)
+                      const SizedBox(width: 8),
+                  ],
+                ],
+              ),
+              Expanded(
+                child: PageView(
+                  controller: _pageController,
+                  onPageChanged: (page) => setState(() => _currentPage = page),
+                  children: [
+                    for (final step in _gettingStartedSteps)
+                      _GettingStartedStepView(step: step),
+                  ],
+                ),
+              ),
+              Row(
+                children: [
+                  if (_currentPage > 0)
+                    TextButton(
+                      onPressed: _saving
+                          ? null
+                          : () => _pageController.previousPage(
+                                duration: const Duration(milliseconds: 240),
+                                curve: Curves.easeOut,
+                              ),
+                      child: const Text('Back'),
+                    )
+                  else
+                    const SizedBox(width: 64),
+                  const Spacer(),
+                  FilledButton(
+                    onPressed: _saving ? null : _nextPage,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.navy,
+                      minimumSize: const Size(150, 52),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: _saving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(isLastPage ? 'Get Started' : 'Next'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Alertify is a development demo, not a certified life-safety system.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.grey, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GettingStartedStep {
+  final IconData icon;
+  final String title;
+  final String description;
+
+  const _GettingStartedStep(this.icon, this.title, this.description);
+}
+
+const _gettingStartedSteps = [
+  _GettingStartedStep(
+    Icons.home_work_outlined,
+    "See what's happening at home",
+    'The Home tab brings your controller connection and sensor readings '
+        'together, including motion, door or window, and smoke or gas status.',
+  ),
+  _GettingStartedStep(
+    Icons.notifications_active_outlined,
+    'Review alerts and controls',
+    'Open Alerts to review recent events. Visit Settings to check the security '
+        'mode and find the options for your Alertify setup.',
+  ),
+  _GettingStartedStep(
+    Icons.developer_board_outlined,
+    'Connect your hardware',
+    'Pair a device and open Hardware Connection Setup from Home or Settings '
+        'to configure your ESP32. No device yet? Choose Continue in Demo / '
+        'Offline Mode on the sign-in screen to explore.',
+  ),
+];
+
+class _GettingStartedStepView extends StatelessWidget {
+  final _GettingStartedStep step;
+
+  const _GettingStartedStepView({required this.step});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 88,
+                height: 88,
+                decoration: const BoxDecoration(
+                  color: AppColors.bg,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(step.icon, size: 42, color: AppColors.blue),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                step.title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.navy,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  height: 1.2,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                step.description,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.grey,
+                  fontSize: 16,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -799,6 +1078,12 @@ class SettingsTab extends StatelessWidget {
                         showDragHandle: true,
                         builder: (_) => const _SimulatorSheet(),
                       );
+                    }),
+                const Divider(height: 1),
+                _item(Icons.menu_book_outlined, 'Getting Started Guide',
+                    onTap: () {
+                      Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => const GettingStartedScreen()));
                     }),
                 const Divider(height: 1),
                 _item(Icons.info, 'About Alertify', onTap: () {
