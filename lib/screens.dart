@@ -102,6 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _pass = TextEditingController();
   bool _hide = true;
   bool _busy = false;
+  bool _acceptedPolicies = false;
 
   Future<void> _enter({required bool create}) async {
     final email = _email.text.trim();
@@ -219,7 +220,40 @@ class _LoginScreenState extends State<LoginScreen> {
                         padding: EdgeInsets.symmetric(horizontal: 12), child: Text('or')),
                     Expanded(child: Divider()),
                   ]),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    value: _acceptedPolicies,
+                    onChanged: (value) =>
+                        setState(() => _acceptedPolicies = value ?? false),
+                    title: const Text(
+                      'I agree to the Terms of Agreement and Privacy Policy.',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                  ),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    children: [
+                      TextButton(
+                        onPressed: () => _openLegalDocument(
+                          context,
+                          'Privacy Policy',
+                          _privacyPolicySections,
+                        ),
+                        child: const Text('Privacy Policy'),
+                      ),
+                      TextButton(
+                        onPressed: () => _openLegalDocument(
+                          context,
+                          'Terms of Agreement',
+                          _termsSections,
+                        ),
+                        child: const Text('Terms of Agreement'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
                   SizedBox(
                     width: double.infinity,
                     height: 54,
@@ -229,7 +263,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         side: const BorderSide(color: AppColors.navy, width: 1.5),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
-                      onPressed: _busy ? null : () => _enter(create: true),
+                      onPressed: _busy || !_acceptedPolicies
+                          ? null
+                          : () => _enter(create: true),
                       child: const Text('Create Account',
                           style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500)),
                     ),
@@ -778,6 +814,22 @@ class SettingsTab extends StatelessWidget {
                     ],
                   );
                 }),
+                const Divider(height: 1),
+                _item(Icons.privacy_tip_outlined, 'Privacy Policy', onTap: () {
+                  _openLegalDocument(
+                    context,
+                    'Privacy Policy',
+                    _privacyPolicySections,
+                  );
+                }),
+                const Divider(height: 1),
+                _item(Icons.gavel_outlined, 'Terms of Agreement', onTap: () {
+                  _openLegalDocument(
+                    context,
+                    'Terms of Agreement',
+                    _termsSections,
+                  );
+                }),
               ]),
             ),
             const SizedBox(height: 18),
@@ -812,6 +864,160 @@ class SettingsTab extends StatelessWidget {
         const Icon(Icons.chevron_right),
       ]),
       onTap: onTap,
+    );
+  }
+}
+
+class _LegalSection {
+  const _LegalSection(this.heading, this.body);
+
+  final String heading;
+  final String body;
+}
+
+const _privacyPolicySections = [
+  _LegalSection(
+    'Information this app uses',
+    'When you sign in, Firebase Authentication processes your email address and '
+        'account identifier. Your password is sent to Firebase Authentication '
+        'for verification and is not persisted by Alertify. '
+        'If you connect a device, the app uses its identifier and name, sensor '
+        'readings (such as motion, door, and smoke/gas status), device status, '
+        'commands, and related event records to provide the dashboard and '
+        'device controls.',
+  ),
+  _LegalSection(
+    'Camera and location',
+    'The current app does not capture, stream, or store camera footage, and it '
+        'does not request location access. Camera status shown in the app is '
+        'only a device status indicator.',
+  ),
+  _LegalSection(
+    'How information is used',
+    'Information is used to sign you in, associate devices with your account, '
+        'display device status and events, and send control commands to a '
+        'connected device. The app does not provide a separate analytics or '
+        'advertising feature.',
+  ),
+  _LegalSection(
+    'Service providers and storage',
+    'Alertify uses Firebase Authentication and Firebase Realtime Database. '
+        'Information sent to Firebase is handled under the Firebase project '
+        'and configuration used by the person or organization operating your '
+        'deployment. That operator controls database access, location, and '
+        'retention settings.',
+  ),
+  _LegalSection(
+    'Retention and deletion',
+    'Device information may remain in the configured Firebase database until '
+        'the operator removes it or applies a retention policy. The app does '
+        'not currently include an account or data deletion control. Contact '
+        'the person or organization operating your deployment to ask about '
+        'access, correction, or deletion of your information.',
+  ),
+  _LegalSection(
+    'Security and policy changes',
+    'The deployment operator is responsible for configuring appropriate '
+        'Firebase database security rules and protecting access to the '
+        'service. This policy may need to change when the app or deployment '
+        'changes. For privacy questions, contact the operator of your '
+        'Alertify deployment.',
+  ),
+];
+
+const _termsSections = [
+  _LegalSection(
+    'About the service',
+    'Alertify is a development/demo home-alert application that connects a '
+        'mobile dashboard to Firebase and compatible sensor hardware. Features '
+        'and availability depend on the app version and deployment.',
+  ),
+  _LegalSection(
+    'Not an emergency or life-safety service',
+    'Alertify is not a certified burglar, smoke, fire, gas, or medical alarm '
+        'and is not monitored as an emergency service. Alerts can be delayed, '
+        'missed, or incorrect because of network, power, hardware, sensor, or '
+        'configuration problems. Do not rely on Alertify as your only '
+        'protection; use certified alarms and contact emergency services '
+        'directly when needed.',
+  ),
+  _LegalSection(
+    'Your responsibilities',
+    'Use only devices and accounts you are authorized to access. Keep your '
+        'account credentials private, configure your deployment securely, '
+        'and verify that connected hardware and sensors are installed and '
+        'working as intended. You are responsible for checking the condition '
+        'of your property and devices.',
+  ),
+  _LegalSection(
+    'Availability and third-party services',
+    'The app and connected devices may be unavailable or may not perform as '
+        'expected. Firebase and other services used by a deployment are '
+        'provided under their own terms and policies.',
+  ),
+  _LegalSection(
+    'Changes and contact',
+    'Features or these terms may change as Alertify is developed. Review the '
+        'current terms when they are updated. For questions about your '
+        'deployment, contact the person or organization that operates it.',
+  ),
+];
+
+void _openLegalDocument(
+  BuildContext context,
+  String title,
+  List<_LegalSection> sections,
+) {
+  Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => _LegalDocumentScreen(title: title, sections: sections),
+    ),
+  );
+}
+
+class _LegalDocumentScreen extends StatelessWidget {
+  const _LegalDocumentScreen({
+    required this.title,
+    required this.sections,
+  });
+
+  final String title;
+  final List<_LegalSection> sections;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: AppColors.navy,
+        foregroundColor: Colors.white,
+        title: Text(title),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          for (final section in sections)
+            Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      section.heading,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.navy,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(section.body),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
